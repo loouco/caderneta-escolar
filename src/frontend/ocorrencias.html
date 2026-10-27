@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ocorrências | Caderneta Escolar</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header id="cabecalho"></header>
+  <main id="conteudo">
+    <h1>Ocorrências</h1>
+    <form class="filtros" id="filtros" onsubmit="return false;">
+      <div class="campo"><label for="gravidade">Gravidade</label><select id="gravidade"><option value="">Todas</option></select></div>
+      <div class="campo"><label for="de">De</label><input type="date" id="de"></div>
+      <div class="campo"><label for="ate">Até</label><input type="date" id="ate"></div>
+    </form>
+    <div id="resultado" aria-live="polite"></div>
+  </main>
+  <script type="module" src="js/ocorrencias.js"></script>
+</body>
+</html>

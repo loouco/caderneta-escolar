@@ -14,3 +14,5 @@
 | RN10 | Só utilizadores autenticados e autorizados acedem às funcionalidades internas. |
 | RN11 | O email do utilizador é único. |
 | RN12 | A data de fim do ano letivo é posterior à data de início. |
+| RN13 | Uma ocorrência pode ser corrigida (tipo, descrição, data, gravidade, medida, observações), mas nunca muda de aluno nem de responsável, e nunca é eliminada. |
+| RN14 | A data de uma ocorrência e a data de nascimento do aluno não podem ser futuras. |

@@ -3,6 +3,7 @@
 const { Router } = require('express');
 const { Validador, lerId } = require('../validacao');
 const { ErroApi, erroNaoEncontrado, erroValidacao } = require('../erros');
+const { rotasOcorrenciasDoAluno } = require('./ocorrencias');
 
 const ESTADOS = ['ativo', 'inativo', 'transferido', 'concluido'];
 
@@ -19,7 +20,8 @@ const SELECT_DETALHE = `
 // A listagem não inclui encarregado nem contacto (RN09: não expor dados pessoais sem necessidade).
 const SELECT_LISTA = `
   SELECT a.id, a.numero_matricula, a.nome_completo, a.sexo, a.estado,
-         a.turma_id, t.nome AS turma_nome
+         a.turma_id, t.nome AS turma_nome,
+         (SELECT COUNT(*) FROM ocorrencia WHERE aluno_id = a.id) AS total_ocorrencias
     FROM aluno a
     JOIN turma t ON t.id = a.turma_id`;
 
@@ -45,6 +47,7 @@ function validarEstado(corpo) {
   return v.concluir();
 }
 
+const semAcentos = (texto) => texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 const escaparLike = (texto) => texto.replace(/[\\%_]/g, '\\$&');
 
 function lerFiltros(query) {
@@ -105,8 +108,8 @@ function rotasAlunos(db) {
     const parametros = {};
 
     if (filtros.q) {
-      condicoes.push("(a.nome_completo LIKE @q ESCAPE '\\' OR a.numero_matricula LIKE @q ESCAPE '\\')");
-      parametros.q = `%${escaparLike(filtros.q)}%`;
+      condicoes.push("(sem_acentos(a.nome_completo) LIKE @q ESCAPE '\\' OR sem_acentos(a.numero_matricula) LIKE @q ESCAPE '\\')");
+      parametros.q = `%${escaparLike(semAcentos(filtros.q))}%`;
     }
     if (filtros.turma_id) {
       condicoes.push('a.turma_id = @turma_id');
@@ -121,6 +124,9 @@ function rotasAlunos(db) {
     const linhas = db.prepare(`${SELECT_LISTA} ${where} ORDER BY a.nome_completo COLLATE NOCASE`).all(parametros);
     res.json(linhas);
   });
+
+  // V4: histórico de ocorrências do aluno (GET e POST em /api/alunos/:id/ocorrencias).
+  router.use('/:id/ocorrencias', rotasOcorrenciasDoAluno(db));
 
   router.get('/:id', (req, res) => res.json(obterOu404(lerId(req.params.id))));
 

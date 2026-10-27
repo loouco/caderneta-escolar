@@ -1,0 +1,129 @@
+:root {
+  --primaria: #1d4e89;
+  --primaria-escura: #153a68;
+  --fundo: #f1f4f9;
+  --texto: #1f2933;
+  --suave: #52606d;
+  --borda: #cbd2d9;
+  --superficie: #fff;
+  --perigo: #b42318;
+  --sucesso: #1a7f4b;
+  --leve: #2f7d4f;
+  --moderada: #9a6700;
+  --grave: #c2410c;
+  --muito-grave: #a4161a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--fundo);
+  color: var(--texto);
+  line-height: 1.5;
+}
+
+a { color: var(--primaria); }
+:focus-visible { outline: 2px solid var(--primaria); outline-offset: 2px; }
+
+/* Cabeçalho e navegação */
+.cabecalho { background: var(--primaria); color: #fff; }
+.cabecalho__interior {
+  max-width: 1040px; margin: 0 auto; padding: 0 1rem;
+  display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+}
+.cabecalho__marca { font-weight: 700; font-size: 1.1rem; padding: 0.85rem 0; }
+.cabecalho nav { display: flex; gap: 0.25rem; flex: 1; flex-wrap: wrap; }
+.cabecalho a { color: #dbe7f5; text-decoration: none; padding: 0.85rem 0.75rem; border-bottom: 3px solid transparent; }
+.cabecalho a:hover { color: #fff; }
+.cabecalho a[aria-current="page"] { color: #fff; border-bottom-color: #fff; font-weight: 600; }
+.cabecalho .sair { margin-left: auto; }
+
+main { max-width: 1040px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+h1 { font-size: 1.5rem; margin: 0 0 1rem; color: var(--primaria); }
+h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
+
+.topo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.topo h1 { margin: 0; }
+.migalhas { font-size: 0.875rem; margin-bottom: 0.5rem; }
+
+.painel { background: var(--superficie); border: 1px solid var(--borda); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+
+/* Botões */
+.botao {
+  display: inline-block; padding: 0.55rem 1rem; border: 1px solid var(--primaria); border-radius: 4px;
+  background: var(--primaria); color: #fff; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none;
+}
+.botao:hover { background: var(--primaria-escura); }
+.botao--secundario { background: #fff; color: var(--primaria); }
+.botao--secundario:hover { background: #e8eff8; }
+.botao--perigo { background: #fff; color: var(--perigo); border-color: var(--perigo); }
+.botao--perigo:hover { background: #fdecea; }
+.botao--pequeno { padding: 0.25rem 0.6rem; font-size: 0.85rem; }
+.botao:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Formulários */
+.formulario { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.9rem 1rem; }
+.campo { display: flex; flex-direction: column; gap: 0.25rem; }
+.campo--larga { grid-column: 1 / -1; }
+.campo label { font-size: 0.875rem; font-weight: 600; }
+input, select, textarea {
+  padding: 0.55rem 0.65rem; border: 1px solid var(--borda); border-radius: 4px; font: inherit; background: #fff; color: var(--texto);
+}
+textarea { min-height: 5rem; resize: vertical; }
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--perigo); }
+.erro-campo { color: var(--perigo); font-size: 0.8rem; min-height: 0; }
+.acoes { grid-column: 1 / -1; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.filtros { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1rem; }
+.filtros .campo { min-width: 160px; }
+.filtros .campo--pesquisa { flex: 1; min-width: 220px; }
+
+/* Avisos */
+.aviso { padding: 0.7rem 0.9rem; border-radius: 4px; margin-bottom: 1rem; border: 1px solid; }
+.aviso--erro { background: #fdecea; border-color: #f5b5ad; color: var(--perigo); }
+.aviso--sucesso { background: #e6f4ec; border-color: #a8d5ba; color: var(--sucesso); }
+.vazio { padding: 2rem 1rem; text-align: center; color: var(--suave); }
+
+/* Tabelas */
+.tabela-envolvente { overflow-x: auto; background: var(--superficie); border: 1px solid var(--borda); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.65rem 0.85rem; border-bottom: 1px solid #e4e7eb; vertical-align: top; }
+th { font-size: 0.85rem; color: var(--suave); background: #f8fafc; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+td.num, th.num { text-align: right; }
+
+/* Estados e gravidades: texto + cor, nunca só cor */
+.etiqueta { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; border: 1px solid currentColor; white-space: nowrap; }
+.etiqueta--leve { color: var(--leve); }
+.etiqueta--moderada { color: var(--moderada); }
+.etiqueta--grave { color: var(--grave); }
+.etiqueta--muito_grave { color: #fff; background: var(--muito-grave); border-color: var(--muito-grave); }
+.etiqueta--ativo, .etiqueta--concluido { color: var(--sucesso); }
+.etiqueta--inativo, .etiqueta--transferido { color: var(--suave); }
+
+/* Ficha do aluno */
+.ficha { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.9rem 1.5rem; margin: 0; }
+.ficha dt { font-size: 0.8rem; color: var(--suave); }
+.ficha dd { margin: 0; font-weight: 500; }
+
+/* Histórico: cronologia, a ocorrência mais recente no topo */
+.historico { list-style: none; margin: 0; padding: 0; }
+.ocorrencia { background: var(--superficie); border: 1px solid var(--borda); border-left-width: 5px; border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 0.75rem; }
+.ocorrencia--leve { border-left-color: var(--leve); }
+.ocorrencia--moderada { border-left-color: var(--moderada); }
+.ocorrencia--grave { border-left-color: var(--grave); }
+.ocorrencia--muito_grave { border-left-color: var(--muito-grave); }
+.ocorrencia__topo { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.35rem; }
+.ocorrencia__tipo { font-weight: 700; }
+.ocorrencia__data { color: var(--suave); font-size: 0.875rem; }
+.ocorrencia p { margin: 0.25rem 0; white-space: pre-wrap; }
+.ocorrencia__meta { color: var(--suave); font-size: 0.85rem; }
+.ocorrencia .botao { margin-top: 0.5rem; }
+
+@media (max-width: 640px) {
+  .cabecalho .sair { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

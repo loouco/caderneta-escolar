@@ -54,4 +54,22 @@ async function criarTurmaBase(pedir) {
   return { anoId: ano.corpo.id, turmaId: turma.corpo.id };
 }
 
-module.exports = { iniciar, dadosAno, dadosTurma, dadosAluno, criarTurmaBase };
+const dadosOcorrencia = (utilizadorId, o = {}) => ({
+  tipo: 'Indisciplina',
+  descricao: 'Perturbou a aula repetidamente.',
+  data: '2025-10-10',
+  gravidade: 'leve',
+  medida_aplicada: 'Advertência oral',
+  utilizador_id: utilizadorId,
+  ...o,
+});
+
+/** Insere um utilizador diretamente na base (ainda não há API de utilizadores). */
+function criarUtilizador(db, { nome = 'Ana Coordenadora', email = 'ana@escola.ao', estado = 'ativo' } = {}) {
+  const r = db.prepare(
+    "INSERT INTO utilizador (nome, email, palavra_passe_hash, perfil, estado) VALUES (?, ?, 'hash-de-teste', 'coordenador', ?)"
+  ).run(nome, email, estado);
+  return Number(r.lastInsertRowid);
+}
+
+module.exports = { iniciar, dadosAno, dadosTurma, dadosAluno, dadosOcorrencia, criarTurmaBase, criarUtilizador };

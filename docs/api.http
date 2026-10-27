@@ -66,3 +66,43 @@ POST {{base}}/alunos
 Content-Type: application/json
 
 { "nome_completo": "", "sexo": "X" }
+
+### 4. Registar ocorrência (aluno 1, utilizador 1; corra antes `npm run db:seed` ou crie um utilizador)
+POST {{base}}/alunos/1/ocorrencias
+Content-Type: application/json
+
+{
+  "tipo": "Indisciplina",
+  "descricao": "Interrompeu a aula várias vezes.",
+  "data": "2026-10-20",
+  "gravidade": "moderada",
+  "medida_aplicada": "Advertência oral",
+  "utilizador_id": 1
+}
+
+### 5. Histórico de ocorrências do aluno
+GET {{base}}/alunos/1/ocorrencias
+
+### 6. Histórico filtrado por gravidade e período
+GET {{base}}/alunos/1/ocorrencias?gravidade=moderada&de=2026-10-01&ate=2026-10-31
+
+### 7. Consulta global
+GET {{base}}/ocorrencias?gravidade=grave
+
+### 8. Corrigir uma ocorrência
+PUT {{base}}/ocorrencias/1
+Content-Type: application/json
+
+{
+  "tipo": "Indisciplina",
+  "descricao": "Interrompeu a aula várias vezes.",
+  "data": "2026-10-20",
+  "gravidade": "moderada",
+  "observacoes": "Encarregado informado."
+}
+
+### 9. Utilizadores ativos (provisório)
+GET {{base}}/utilizadores
+
+### 10. Pesquisa de alunos sem acentos
+GET {{base}}/alunos?q=joao

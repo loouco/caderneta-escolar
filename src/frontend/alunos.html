@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alunos | Caderneta Escolar</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header id="cabecalho"></header>
+  <main id="conteudo">
+    <div class="topo">
+      <h1>Alunos</h1>
+      <a class="botao" href="aluno-form.html">Novo aluno</a>
+    </div>
+    <form class="filtros" id="filtros" role="search" onsubmit="return false;">
+      <div class="campo campo--pesquisa"><label for="q">Pesquisar por nome ou matrícula</label><input type="search" id="q" maxlength="100" autocomplete="off"></div>
+      <div class="campo"><label for="turma">Turma</label><select id="turma"><option value="">Todas</option></select></div>
+      <div class="campo"><label for="estado">Estado</label><select id="estado"><option value="">Todos</option></select></div>
+    </form>
+    <div id="resultado" aria-live="polite"></div>
+  </main>
+  <script type="module" src="js/alunos.js"></script>
+</body>
+</html>

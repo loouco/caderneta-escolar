@@ -6,6 +6,8 @@ const { erroNaoEncontrado, tratarErros } = require('./erros');
 const { rotasAnosLetivos } = require('./rotas/anos-letivos');
 const { rotasTurmas } = require('./rotas/turmas');
 const { rotasAlunos } = require('./rotas/alunos');
+const { rotasOcorrencias } = require('./rotas/ocorrencias');
+const { rotasUtilizadores } = require('./rotas/utilizadores');
 
 const PASTA_FRONTEND = path.join(__dirname, '..', 'frontend');
 
@@ -31,6 +33,8 @@ function criarApp(db) {
   app.use('/api/anos-letivos', rotasAnosLetivos(db));
   app.use('/api/turmas', rotasTurmas(db));
   app.use('/api/alunos', rotasAlunos(db));
+  app.use('/api/ocorrencias', rotasOcorrencias(db));
+  app.use('/api/utilizadores', rotasUtilizadores(db));
   app.use('/api', (req, res, next) => next(erroNaoEncontrado('Recurso não encontrado.')));
 
   app.use(express.static(PASTA_FRONTEND, { index: 'login.html' }));

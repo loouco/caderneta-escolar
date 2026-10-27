@@ -55,6 +55,16 @@ class Validador {
     this.dados[campo] = limpo;
   }
 
+  /** Texto opcional: ausente, nulo ou vazio ficam a null. */
+  textoOpcional(campo, { max = 500 } = {}) {
+    const valor = this.corpo[campo];
+    if (valor === undefined || valor === null) { this.dados[campo] = null; return; }
+    if (typeof valor !== 'string') return this.erro(campo, 'Deve ser texto.');
+    const limpo = valor.trim();
+    if (limpo.length > max) return this.erro(campo, `Máximo de ${max} caracteres.`);
+    this.dados[campo] = limpo || null;
+  }
+
   data(campo, { naoFutura = false } = {}) {
     const valor = this.corpo[campo];
     if (valor === undefined || valor === null || valor === '') return this.erro(campo, 'Campo obrigatório.');

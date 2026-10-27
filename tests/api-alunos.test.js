@@ -205,3 +205,14 @@ describe('API: comportamento geral', () => {
     assert.match(await r.text(), /Caderneta Escolar/);
   });
 });
+
+describe('API de alunos: pesquisa sem acentos', () => {
+  it('"joao" encontra "João" e "SAO" encontra "São"', async () => {
+    await criar({ nome_completo: 'João Gonçalves' });
+    await criar({ numero_matricula: '2025002', nome_completo: 'Maria São Paulo' });
+    assert.equal((await app.pedir('GET', '/api/alunos?q=joao')).corpo.length, 1);
+    assert.equal((await app.pedir('GET', '/api/alunos?q=goncalves')).corpo.length, 1);
+    assert.equal((await app.pedir('GET', '/api/alunos?q=SAO')).corpo.length, 1);
+    assert.equal((await app.pedir('GET', '/api/alunos?q=Jo%C3%A3o')).corpo.length, 1);
+  });
+});

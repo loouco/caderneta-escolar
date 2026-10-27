@@ -1,0 +1,154 @@
+import { api, consulta } from './api.js';
+import {
+  el, cabecalho, campo, selecao, etiqueta, aviso, limparAviso, mostrarErros, lerFormulario,
+  formatarData, idDaUrl, GRAVIDADES, ESTADOS_ALUNO, SEXOS,
+} from './ui.js';
+
+cabecalho('alunos');
+
+const id = idDaUrl();
+const raiz = document.getElementById('ficha');
+const TIPOS_SUGERIDOS = ['Atraso', 'Falta de material', 'Indisciplina', 'Falta de respeito', 'Agressão', 'Uso indevido de telemóvel', 'Danos materiais'];
+
+let aluno;
+let utilizadores = [];
+let historicoEl;
+let filtroGravidade;
+let formOcorrencia;
+let emEdicao = null; // ocorrência a corrigir, ou null quando se está a registar uma nova
+
+async function iniciar() {
+  try {
+    [aluno, utilizadores] = await Promise.all([api('GET', `/alunos/${encodeURIComponent(id)}`), api('GET', '/utilizadores')]);
+  } catch (erro) {
+    aviso(raiz, erro.status === 404 ? 'Aluno não encontrado.' : erro.message);
+    return;
+  }
+  document.title = `${aluno.nome_completo} | Caderneta Escolar`;
+  desenharFicha();
+  await carregarHistorico();
+}
+
+function desenharFicha() {
+  const dado = (rotulo, valor) => [el('dt', {}, rotulo), el('dd', {}, valor)];
+  const seletorEstado = selecao(Object.entries(ESTADOS_ALUNO), aluno.estado);
+  seletorEstado.setAttribute('aria-label', 'Estado do aluno');
+  const botaoEstado = el('button', { class: 'botao botao--secundario', type: 'button' }, 'Alterar estado');
+  botaoEstado.addEventListener('click', async () => {
+    try {
+      aluno = await api('PATCH', `/alunos/${encodeURIComponent(id)}/estado`, { estado: seletorEstado.value });
+      desenharFicha();
+      aviso(raiz, 'Estado atualizado.', 'sucesso');
+    } catch (erro) {
+      aviso(raiz, erro.message);
+    }
+  });
+
+  historicoEl = el('ol', { class: 'historico' });
+  filtroGravidade = selecao(Object.entries(GRAVIDADES), '', { vazio: 'Todas as gravidades' });
+  filtroGravidade.setAttribute('aria-label', 'Filtrar por gravidade');
+  filtroGravidade.addEventListener('change', carregarHistorico);
+
+  const novo = el('button', { class: 'botao', type: 'button' }, 'Registar ocorrência');
+  novo.addEventListener('click', () => abrirFormulario(null));
+  formOcorrencia = el('section', { class: 'painel', hidden: true });
+
+  raiz.replaceChildren(
+    el('div', { class: 'topo' },
+      el('h1', {}, aluno.nome_completo),
+      el('a', { class: 'botao botao--secundario', href: `aluno-form.html?id=${aluno.id}` }, 'Editar dados')),
+    el('section', { class: 'painel' },
+      el('dl', { class: 'ficha' },
+        dado('Matrícula', aluno.numero_matricula),
+        dado('Turma', `${aluno.turma_nome} (${aluno.ano_letivo_designacao})`),
+        dado('Data de nascimento', formatarData(aluno.data_nascimento)),
+        dado('Sexo', SEXOS[aluno.sexo]),
+        dado('Encarregado de educação', aluno.encarregado_educacao),
+        dado('Contacto', aluno.contacto),
+        dado('Estado', etiqueta(aluno.estado, ESTADOS_ALUNO))),
+      el('div', { class: 'filtros', style: 'margin: 1rem 0 0' }, seletorEstado, botaoEstado)),
+    el('div', { class: 'topo' }, el('h2', { style: 'margin:0' }, 'Histórico de ocorrências'), el('div', { class: 'filtros', style: 'margin:0' }, filtroGravidade, novo)),
+    formOcorrencia,
+    historicoEl);
+}
+
+async function carregarHistorico() {
+  try {
+    const lista = await api('GET', `/alunos/${encodeURIComponent(id)}/ocorrencias${consulta({ gravidade: filtroGravidade.value })}`);
+    desenharHistorico(lista);
+  } catch (erro) {
+    aviso(raiz, erro.message);
+  }
+}
+
+function desenharHistorico(lista) {
+  if (lista.length === 0) {
+    historicoEl.replaceChildren(el('li', { class: 'vazio' }, filtroGravidade.value ? 'Nenhuma ocorrência com esta gravidade.' : 'Este aluno não tem ocorrências registadas.'));
+    return;
+  }
+  historicoEl.replaceChildren(...lista.map((o) => {
+    const corrigir = el('button', { class: 'botao botao--secundario botao--pequeno', type: 'button' }, 'Corrigir');
+    corrigir.addEventListener('click', () => abrirFormulario(o));
+    return el('li', { class: `ocorrencia ocorrencia--${o.gravidade}` },
+      el('div', { class: 'ocorrencia__topo' },
+        el('span', { class: 'ocorrencia__tipo' }, o.tipo),
+        etiqueta(o.gravidade, GRAVIDADES),
+        el('span', { class: 'ocorrencia__data' }, formatarData(o.data))),
+      el('p', {}, o.descricao),
+      o.medida_aplicada && el('p', {}, el('strong', {}, 'Medida aplicada: '), o.medida_aplicada),
+      o.observacoes && el('p', {}, el('strong', {}, 'Observações: '), o.observacoes),
+      el('div', { class: 'ocorrencia__meta' }, `Registado por ${o.utilizador_nome}`),
+      corrigir);
+  }));
+}
+
+function abrirFormulario(ocorrencia) {
+  emEdicao = ocorrencia;
+  const o = ocorrencia ?? {};
+  const hoje = new Date().toISOString().slice(0, 10);
+  const lista = el('datalist', { id: 'tipos' }, TIPOS_SUGERIDOS.map((t) => el('option', { value: t })));
+
+  const form = el('form', { class: 'formulario', novalidate: true },
+    campo({ nome: 'tipo', rotulo: 'Tipo', controlo: el('input', { type: 'text', maxlength: 60, list: 'tipos', required: true, value: o.tipo ?? '' }) }),
+    campo({ nome: 'data', rotulo: 'Data', controlo: el('input', { type: 'date', max: hoje, required: true, value: o.data ?? hoje }) }),
+    campo({ nome: 'gravidade', rotulo: 'Gravidade', controlo: selecao(Object.entries(GRAVIDADES), o.gravidade ?? '', { vazio: 'Escolha…' }) }),
+    // Provisório (V4/V5): escolhe-se o responsável. Na V6 será sempre o utilizador autenticado.
+    !ocorrencia && campo({ nome: 'utilizador_id', rotulo: 'Responsável pelo registo', controlo: selecao(utilizadores.map((u) => [u.id, u.nome]), '', { vazio: 'Escolha…' }) }),
+    campo({ nome: 'descricao', rotulo: 'Descrição', larga: true, controlo: el('textarea', { maxlength: 2000, required: true }, o.descricao ?? '') }),
+    campo({ nome: 'medida_aplicada', rotulo: 'Medida aplicada (opcional)', larga: true, controlo: el('input', { type: 'text', maxlength: 500, value: o.medida_aplicada ?? '' }) }),
+    campo({ nome: 'observacoes', rotulo: 'Observações (opcional)', larga: true, controlo: el('textarea', { maxlength: 1000 }, o.observacoes ?? '') }),
+    el('div', { class: 'acoes' },
+      el('button', { class: 'botao', type: 'submit' }, ocorrencia ? 'Guardar correção' : 'Registar'),
+      el('button', { class: 'botao botao--secundario', type: 'button', onclick: fecharFormulario }, 'Cancelar')),
+    lista);
+
+  form.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const botao = form.querySelector('button[type="submit"]');
+    botao.disabled = true;
+    const dados = lerFormulario(form);
+    if (dados.utilizador_id === '') delete dados.utilizador_id;
+    try {
+      if (emEdicao) await api('PUT', `/ocorrencias/${emEdicao.id}`, dados);
+      else await api('POST', `/alunos/${encodeURIComponent(id)}/ocorrencias`, dados);
+      fecharFormulario();
+      await carregarHistorico();
+      aviso(raiz, emEdicao ? 'Ocorrência corrigida.' : 'Ocorrência registada.', 'sucesso');
+    } catch (erro) {
+      if (mostrarErros(form, erro) && erro.codigo === 'VALIDACAO') aviso(formOcorrencia, 'Corrija os campos assinalados.');
+      else aviso(formOcorrencia, erro.message);
+      botao.disabled = false;
+    }
+  });
+
+  formOcorrencia.replaceChildren(el('h3', { style: 'margin-top:0' }, ocorrencia ? 'Corrigir ocorrência' : 'Nova ocorrência'), form);
+  formOcorrencia.hidden = false;
+  form.querySelector('input').focus();
+}
+
+function fecharFormulario() {
+  formOcorrencia.hidden = true;
+  formOcorrencia.replaceChildren();
+}
+
+iniciar();

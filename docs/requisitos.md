@@ -8,6 +8,7 @@
 - RF05: Pesquisar alunos (nome, matrícula, turma).
 - RF06: Autenticar utilizadores (coordenador, administrador).
 - RF07: Restringir funcionalidades de acordo com o perfil.
+- RF08: Permitir ao aluno autenticar-se e consultar apenas o seu estado escolar, matrícula, turma e ano letivo.
 
 ## Requisitos não funcionais
 - RNF01: Palavras-passe armazenadas apenas com hash.
@@ -20,4 +21,4 @@
 - **Administrador**: gere utilizadores, anos letivos e turmas.
 - **Coordenador**: gere alunos e regista ocorrências.
 
-> Nota: as permissões exactas por perfil serão fechadas na V6.
+O administrador pode gerir contas, anos letivos e turmas, além de aceder às funcionalidades escolares. O professor e o coordenador gerem alunos e ocorrências. O aluno consulta apenas o próprio estado escolar. Todos precisam de uma sessão válida.

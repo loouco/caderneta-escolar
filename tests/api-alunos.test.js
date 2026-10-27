@@ -130,14 +130,13 @@ describe('API de alunos: consulta e proteção de dados', () => {
 });
 
 describe('API de alunos: atualização e histórico', () => {
-  it('atualiza os dados e permite mudar de turma', async () => {
+  it('atualiza os dados sem permitir mudar a turma fora do fluxo de transferência', async () => {
     const outra = await app.pedir('POST', '/api/turmas', dadosTurma(1, { nome: '9.ª B' }));
     const criado = await criar();
     const r = await app.pedir('PUT', `/api/alunos/${criado.corpo.id}`,
       dadosAluno(outra.corpo.id, { nome_completo: 'Maria S. Silva' }));
-    assert.equal(r.status, 200);
-    assert.equal(r.corpo.nome_completo, 'Maria S. Silva');
-    assert.equal(r.corpo.turma_nome, '9.ª B');
+    assert.equal(r.status, 400);
+    assert.equal((await app.pedir('GET', `/api/alunos/${criado.corpo.id}`)).corpo.turma_nome, '9.ª A');
   });
 
   it('RN01: não permite alterar a matrícula para uma já existente', async () => {

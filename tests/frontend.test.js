@@ -7,7 +7,7 @@ const path = require('node:path');
 const { iniciar } = require('./auxiliar');
 
 const PASTA = path.join(__dirname, '..', 'src', 'frontend');
-const PAGINAS = ['login', 'alunos', 'aluno', 'aluno-form', 'ocorrencias', 'turmas'];
+const PAGINAS = ['login', 'alunos', 'aluno', 'aluno-form', 'ocorrencias', 'turmas', 'utilizadores', 'portal-aluno', 'professor'];
 
 let app;
 beforeEach(async () => { app = await iniciar(); });
@@ -16,7 +16,13 @@ afterEach(async () => { await app.fechar(); });
 describe('Frontend', () => {
   for (const pagina of PAGINAS) {
     it(`${pagina}.html é servida e os recursos que referencia existem`, async () => {
-      const r = await fetch(`${app.base}/${pagina}.html`);
+      let cookie = app.sessao.cookie;
+      if (pagina === 'professor') {
+        const professorId = Number(app.db.prepare("INSERT INTO utilizador (nome,email,palavra_passe_hash,perfil) VALUES ('Professor Teste','professor@teste.ao','hash','professor')").run().lastInsertRowid);
+        cookie = app.criarSessao(professorId).cookie;
+      }
+      const cabecalhos = pagina === 'login' ? {} : { headers: { Cookie: cookie } };
+      const r = await fetch(`${app.base}/${pagina}.html`, cabecalhos);
       assert.equal(r.status, 200);
       const html = await r.text();
       const recursos = [...html.matchAll(/(?:href|src)="((?:css|js)\/[^"]+)"/g)].map((m) => m[1]);

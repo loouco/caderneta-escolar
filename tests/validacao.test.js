@@ -53,4 +53,19 @@ describe('Validador', () => {
     v.inteiroPositivo('id');
     assert.throws(() => v.concluir(), (e) => e.detalhes.nome === 'Deve ser texto.' && Boolean(e.detalhes.id));
   });
+
+  it('valida segredos sem remover espaços significativos', () => {
+    const segredo = '  palavra-passe-segura  ';
+    const v = new Validador({ palavra_passe: segredo });
+    v.segredo('palavra_passe', { min: 12, max: 128 });
+    assert.equal(v.concluir().palavra_passe, segredo);
+  });
+
+  it('rejeita segredos vazios, curtos ou maiores que o limite', () => {
+    for (const segredo of ['', '   ', 'curta', 'x'.repeat(129)]) {
+      const v = new Validador({ palavra_passe: segredo });
+      v.segredo('palavra_passe', { min: 12, max: 128 });
+      assert.throws(() => v.concluir(), (e) => Boolean(e.detalhes.palavra_passe));
+    }
+  });
 });

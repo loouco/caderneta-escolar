@@ -2,14 +2,16 @@
 
 const { Router } = require('express');
 const { Validador, lerId } = require('../validacao');
-const { ErroApi, erroNaoEncontrado, erroValidacao } = require('../erros');
+const { ErroApi, erroNaoEncontrado, erroValidacao, erroConflito } = require('../erros');
 const { rotasOcorrenciasDoAluno } = require('./ocorrencias');
 
+const { exigirPerfil } = require('../autenticacao');
 const ESTADOS = ['ativo', 'inativo', 'transferido', 'concluido'];
 
 // Detalhe completo (dados pessoais) só no acesso a um aluno concreto.
 const SELECT_DETALHE = `
   SELECT a.id, a.numero_matricula, a.nome_completo, a.data_nascimento, a.sexo,
+         COALESCE((SELECT o.situacao_disciplinar FROM ocorrencia o WHERE o.aluno_id=a.id ORDER BY o.data DESC, o.id DESC LIMIT 1), 'regular') AS situacao_disciplinar,
          a.encarregado_educacao, a.contacto, a.turma_id, a.estado, a.criado_em,
          t.nome AS turma_nome, t.classe AS turma_classe,
          al.designacao AS ano_letivo_designacao
@@ -87,12 +89,18 @@ function rotasAlunos(db) {
       WHERE id = @id`
   );
   const mudarEstado = db.prepare('UPDATE aluno SET estado = @estado WHERE id = @id');
+  const inserirTransferencia = db.prepare(`INSERT INTO transferencia_turma (aluno_id, turma_origem_id, turma_destino_id, utilizador_id, motivo) VALUES (?, ?, ?, ?, ?)`);
+  const atualizarTurma = db.prepare('UPDATE aluno SET turma_id = ? WHERE id = ?');
+  const turmaTransferivel = db.prepare('SELECT id, ano_letivo_id FROM turma WHERE id = ?');
+  const listarTransferencias = db.prepare(`SELECT x.id, x.aluno_id, x.turma_origem_id, o.nome AS turma_origem_nome, o.classe AS turma_origem_classe, x.turma_destino_id, d.nome AS turma_destino_nome, d.classe AS turma_destino_classe, x.data_hora, x.utilizador_id, u.nome AS utilizador_nome, x.motivo FROM transferencia_turma x JOIN turma o ON o.id=x.turma_origem_id JOIN turma d ON d.id=x.turma_destino_id JOIN utilizador u ON u.id=x.utilizador_id WHERE x.aluno_id=? ORDER BY x.data_hora DESC, x.id DESC`);
 
-  function obterOu404(id) {
+  function obterOu404(id, utilizador) {
     const aluno = obter.get(id);
-    if (!aluno) throw erroNaoEncontrado('Aluno não encontrado.');
+    if (!aluno || (utilizador?.perfil === 'professor' && aluno.turma_id !== turmaDoProfessor(utilizador.id))) throw erroNaoEncontrado('Aluno não encontrado.');
     return aluno;
   }
+
+  const turmaDoProfessor = (id) => db.prepare('SELECT turma_id FROM turma_professor WHERE professor_id = ?').get(id)?.turma_id ?? null;
 
   function validarComTurma(corpo) {
     const dados = validarAluno(corpo);
@@ -111,6 +119,12 @@ function rotasAlunos(db) {
       condicoes.push("(sem_acentos(a.nome_completo) LIKE @q ESCAPE '\\' OR sem_acentos(a.numero_matricula) LIKE @q ESCAPE '\\')");
       parametros.q = `%${escaparLike(semAcentos(filtros.q))}%`;
     }
+    if (req.utilizador.perfil === 'professor') {
+      const turmaId = turmaDoProfessor(req.utilizador.id);
+      if (!turmaId) return res.json([]);
+      if (filtros.turma_id && filtros.turma_id !== turmaId) return res.json([]);
+      condicoes.push('a.turma_id = @professor_turma_id'); parametros.professor_turma_id = turmaId;
+    }
     if (filtros.turma_id) {
       condicoes.push('a.turma_id = @turma_id');
       parametros.turma_id = filtros.turma_id;
@@ -128,22 +142,43 @@ function rotasAlunos(db) {
   // V4: histórico de ocorrências do aluno (GET e POST em /api/alunos/:id/ocorrencias).
   router.use('/:id/ocorrencias', rotasOcorrenciasDoAluno(db));
 
-  router.get('/:id', (req, res) => res.json(obterOu404(lerId(req.params.id))));
+  router.get('/:id', (req, res) => res.json(obterOu404(lerId(req.params.id), req.utilizador)));
 
-  router.post('/', (req, res) => {
+  router.post('/', exigirPerfil('administrador'), (req, res) => {
     const dados = validarComTurma(req.body); // o estado inicial é sempre "ativo" (valor por omissão da BD)
     const { lastInsertRowid } = inserir.run(dados);
     res.status(201).json(obter.get(lastInsertRowid));
   });
 
-  router.put('/:id', (req, res) => {
+  router.put('/:id', exigirPerfil('administrador'), (req, res) => {
     const id = lerId(req.params.id);
-    obterOu404(id);
-    atualizar.run({ ...validarComTurma(req.body), id });
+    const atual = obterOu404(id);
+    const dados = validarComTurma(req.body);
+    if (dados.turma_id !== atual.turma_id) throw erroValidacao({ turma_id: 'Use a transferência interna para mudar o aluno de turma.' });
+    atualizar.run({ ...dados, id });
     res.json(obter.get(id));
   });
 
-  router.patch('/:id/estado', (req, res) => {
+  router.get('/:id/transferencias', (req, res) => { const aluno = obterOu404(lerId(req.params.id), req.utilizador); res.json(listarTransferencias.all(aluno.id)); });
+
+  router.post('/:id/transferencias', exigirPerfil('administrador'), (req, res) => {
+    const alunoId = lerId(req.params.id); const aluno = obterOu404(alunoId, req.utilizador);
+    const v = new Validador(req.body); v.inteiroPositivo('turma_destino_id'); v.textoOpcional('motivo', { max: 500 }); const dados = v.concluir();
+    const destino = turmaTransferivel.get(dados.turma_destino_id);
+    if (!destino) throw erroValidacao({ turma_destino_id: 'A turma de destino não existe.' });
+    if (destino.id === aluno.turma_id) throw erroValidacao({ turma_destino_id: 'Escolha uma turma diferente da atual.' });
+    const origem = turmaTransferivel.get(aluno.turma_id);
+    if (destino.ano_letivo_id !== origem.ano_letivo_id) throw erroValidacao({ turma_destino_id: 'A transferência deve ocorrer no mesmo ano letivo.' });
+    const transferir = db.transaction(() => {
+      inserirTransferencia.run(alunoId, aluno.turma_id, destino.id, req.utilizador.id, dados.motivo ?? null);
+      const resultado = atualizarTurma.run(destino.id, alunoId);
+      if (resultado.changes !== 1) throw new Error('O aluno deixou de existir durante a transferência.');
+    });
+    transferir.immediate();
+    res.status(201).json({ aluno: obter.get(alunoId), transferencias: listarTransferencias.all(alunoId) });
+  });
+
+  router.patch('/:id/estado', exigirPerfil('administrador'), (req, res) => {
     const id = lerId(req.params.id);
     obterOu404(id);
     mudarEstado.run({ ...validarEstado(req.body), id });

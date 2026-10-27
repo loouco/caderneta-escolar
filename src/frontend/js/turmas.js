@@ -1,7 +1,8 @@
 import { api } from './api.js';
 import { el, cabecalho, campo, selecao, etiqueta, aviso, limparAviso, mostrarErros, lerFormulario, formatarData, ESTADOS_ANO } from './ui.js';
 
-cabecalho('turmas');
+const utilizador = await cabecalho('turmas');
+const administrador = utilizador?.perfil === 'administrador';
 
 const mensagens = document.getElementById('mensagens');
 const formAno = document.getElementById('form-ano');
@@ -16,7 +17,7 @@ async function carregar() {
   try {
     const [anos, turmas] = await Promise.all([api('GET', '/anos-letivos'), api('GET', '/turmas')]);
     desenharAnos(anos);
-    desenharTurmas(turmas);
+    await desenharTurmas(turmas);
     prepararFormTurma(anos);
   } catch (erro) {
     aviso(mensagens, erro.message);
@@ -29,22 +30,37 @@ function desenharAnos(anos) {
     'Ainda não há anos letivos.'));
 }
 
-function desenharTurmas(turmas) {
-  const linhas = turmas.map((t) => {
-    const eliminar = el('button', { class: 'botao botao--perigo botao--pequeno', type: 'button', disabled: t.total_alunos > 0, title: t.total_alunos > 0 ? 'Só é possível eliminar turmas sem alunos.' : null }, 'Eliminar');
-    eliminar.addEventListener('click', async () => {
-      if (!confirm(`Eliminar a turma ${t.nome} (${t.ano_letivo_designacao})?`)) return;
-      try {
-        await api('DELETE', `/turmas/${t.id}`);
-        await carregar();
-        aviso(mensagens, 'Turma eliminada.', 'sucesso');
-      } catch (erro) {
-        aviso(mensagens, erro.message);
-      }
-    });
-    return el('tr', {}, el('td', {}, t.nome), el('td', {}, t.classe), el('td', {}, t.ano_letivo_designacao), el('td', { class: 'num' }, String(t.total_alunos)), el('td', {}, eliminar));
-  });
-  document.getElementById('turmas').replaceChildren(tabela(['Turma', 'Classe', 'Ano letivo', 'Alunos', ''], linhas, 'Ainda não há turmas.'));
+async function desenharTurmas(turmas) {
+  const linhas = await Promise.all(turmas.map(async (t) => {
+    const celulas = [el('td', {}, t.nome), el('td', {}, t.classe), el('td', {}, t.ano_letivo_designacao), el('td', { class: 'num' }, String(t.total_alunos))];
+    if (administrador) {
+      const professores = await api('GET', `/turmas/professores-disponiveis?turma_id=${t.id}`);
+      const professor = selecao([[ '', 'Sem professor atribuído' ], ...professores.map((p) => [p.id, `${p.nome} (${p.email})`])], t.professor_id ?? '');
+      const atribuir = el('button', { class: 'botao botao--secundario botao--pequeno', type: 'button' }, 'Guardar responsável');
+      atribuir.addEventListener('click', async () => {
+        atribuir.disabled = true;
+        try { await api('PUT', `/turmas/${t.id}/professor`, { professor_id: professor.value ? Number(professor.value) : null }); await carregar(); aviso(mensagens, 'Professor responsável atualizado.', 'sucesso'); }
+        catch (erro) { aviso(mensagens, erro.message); atribuir.disabled = false; }
+      });
+      celulas.push(el('td', {}, professor, atribuir));
+      const eliminar = el('button', { class: 'botao botao--perigo botao--pequeno', type: 'button', disabled: t.total_alunos > 0 || t.total_transferencias > 0, title: t.total_alunos > 0 ? 'Só é possível eliminar turmas sem alunos.' : t.total_transferencias > 0 ? 'A turma consta no histórico de transferências.' : null }, 'Eliminar');
+      eliminar.addEventListener('click', async () => {
+        if (!confirm(`Eliminar a turma ${t.nome} (${t.ano_letivo_designacao})?`)) return;
+        try {
+          await api('DELETE', `/turmas/${t.id}`);
+          await carregar();
+          aviso(mensagens, 'Turma eliminada.', 'sucesso');
+        } catch (erro) {
+          aviso(mensagens, erro.message);
+        }
+      });
+      celulas.push(el('td', {}, eliminar));
+    }
+    return el('tr', {}, celulas);
+  }));
+  const cabecalhos = ['Turma', 'Classe', 'Ano letivo', 'Alunos'];
+  if (administrador) cabecalhos.push('Professor responsável', '');
+  document.getElementById('turmas').replaceChildren(tabela(cabecalhos, linhas, 'Ainda não há turmas.'));
 }
 
 function montarFormAno() {
@@ -82,7 +98,12 @@ function submeter(formulario, caminho, sucesso) {
   });
 }
 
-montarFormAno();
-submeter(formAno, '/anos-letivos', 'Ano letivo criado.');
-submeter(formTurma, '/turmas', 'Turma criada.');
+if (administrador) {
+  montarFormAno();
+  submeter(formAno, '/anos-letivos', 'Ano letivo criado.');
+  submeter(formTurma, '/turmas', 'Turma criada.');
+} else {
+  formAno.closest('.painel').hidden = true;
+  formTurma.closest('.painel').hidden = true;
+}
 carregar();

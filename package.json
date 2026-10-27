@@ -10,6 +10,8 @@
     "start": "node src/backend/server.js",
     "dev": "node --watch src/backend/server.js",
     "db:init": "node database/init.js",
+    "db:demo": "node database/demo.js",
+    "db:criar-administrador": "node database/criar-administrador.js",
     "test": "node --test",
     "db:seed": "node database/seed.js"
   },
@@ -17,5 +19,8 @@
   "dependencies": {
     "better-sqlite3": "^13.0.3",
     "express": "^5.3.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true
   }
 }

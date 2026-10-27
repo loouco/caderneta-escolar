@@ -3,11 +3,11 @@
 /**
  * Dados de exemplo para experimentar a aplicação (npm run db:seed).
  * Só corre numa base vazia, por isso é seguro executá-lo mais de uma vez.
- * Os utilizadores criados NÃO têm palavra-passe utilizável: o login real chega na V6.
+ * As contas de exemplo não têm palavra-passe utilizável; crie credenciais na aplicação.
  */
 const { abrirBase } = require('./db');
 
-const SEM_LOGIN = '!sem-login-ate-v6';
+const SEM_LOGIN = '!sem-login';
 
 const db = abrirBase();
 if (db.prepare('SELECT COUNT(*) AS n FROM ano_letivo').get().n > 0) {
@@ -26,10 +26,18 @@ const inserirTudo = db.transaction(() => {
   const t9a = turma.run('9.ª A', '9.ª classe', ano).lastInsertRowid;
   const t9b = turma.run('9.ª B', '9.ª classe', ano).lastInsertRowid;
 
-  const util = db.prepare("INSERT INTO utilizador (nome, email, palavra_passe_hash, perfil) VALUES (?, ?, ?, ?)");
-  const ana = util.run('Ana Domingos', 'ana.domingos@escola.ao', SEM_LOGIN, 'coordenador').lastInsertRowid;
-  const carlos = util.run('Carlos Baptista', 'carlos.baptista@escola.ao', SEM_LOGIN, 'coordenador').lastInsertRowid;
-  util.run('Administrador do Sistema', 'admin@escola.ao', SEM_LOGIN, 'administrador');
+  const procurarUtilizador = db.prepare('SELECT id FROM utilizador WHERE email = ? COLLATE NOCASE');
+  const inserirUtilizador = db.prepare(
+    'INSERT INTO utilizador (nome, email, palavra_passe_hash, perfil) VALUES (?, ?, ?, ?)'
+  );
+  const utilizadorExemplo = (nome, email, perfil) => {
+    const existente = procurarUtilizador.get(email);
+    if (existente) return existente.id;
+    return Number(inserirUtilizador.run(nome, email, SEM_LOGIN, perfil).lastInsertRowid);
+  };
+  const ana = utilizadorExemplo('Ana Domingos', 'ana.domingos@escola.ao', 'coordenador');
+  const carlos = utilizadorExemplo('Carlos Baptista', 'carlos.baptista@escola.ao', 'coordenador');
+  utilizadorExemplo('Administrador do Sistema', 'admin@escola.ao', 'administrador');
 
   const aluno = db.prepare(
     `INSERT INTO aluno (numero_matricula, nome_completo, data_nascimento, sexo, encarregado_educacao, contacto, turma_id)

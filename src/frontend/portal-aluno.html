@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f3f7f7">
+  <title>Portal da família | Caderneta Escolar</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="portal-familia">
+  <header id="cabecalho"></header>
+  <main id="conteudo" class="portal-aluno">
+    <p class="migalhas">Portal da família</p>
+    <section class="portal-aluno__boas-vindas">
+      <span class="portal-kicker">A CADERNETA DA FAMÍLIA</span>
+      <h1 id="nome-aluno">A carregar o perfil…</h1>
+      <p>Com as credenciais do aluno, a família acompanha a vida escolar, as ocorrências e as reuniões marcadas.</p>
+    </section>
+    <div id="mensagens"></div>
+    <section class="portal-aluno__cartao" aria-labelledby="titulo-estado">
+      <div class="portal-aluno__cartao-topo">
+        <div><span class="portal-kicker">RESUMO ESCOLAR</span><h2 id="titulo-estado">Percurso e bem-estar</h2></div>
+        <span class="portal-aluno__simbolo" aria-hidden="true">♡</span>
+      </div>
+      <div id="estado-aluno" class="portal-aluno__estado" aria-live="polite"></div>
+      <dl id="dados-aluno" class="portal-aluno__dados"></dl>
+      <p class="portal-aluno__nota">A informação é privada e só pode ser consultada com a conta associada a este aluno.</p>
+    </section>
+    <section class="portal-secao" aria-labelledby="titulo-ocorrencias">
+      <div class="portal-secao__topo"><div><span class="portal-kicker">ACOMPANHAMENTO</span><h2 id="titulo-ocorrencias">Ocorrências</h2></div><span id="total-ocorrencias" class="portal-contador"></span></div>
+      <ol id="lista-ocorrencias" class="portal-lista" aria-live="polite"></ol>
+    </section>
+    <section class="portal-secao" aria-labelledby="titulo-reunioes">
+      <div class="portal-secao__topo"><div><span class="portal-kicker">EM CONJUNTO</span><h2 id="titulo-reunioes">Reuniões com a escola</h2></div></div>
+      <ol id="lista-reunioes" class="portal-lista" aria-live="polite"></ol>
+    </section>
+    <p class="portal-rodape">Se precisar de esclarecer alguma informação, contacte a escola.</p>
+  </main>
+  <script type="module" src="js/portal-aluno.js"></script>
+</body>
+</html>

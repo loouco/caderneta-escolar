@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Utilizadores | Caderneta Escolar</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header id="cabecalho"></header>
+  <main id="conteudo">
+    <div class="topo">
+      <div>
+        <p class="migalhas">Administração</p>
+        <h1>Utilizadores</h1>
+      </div>
+    </div>
+    <div id="mensagens"></div>
+    <p class="texto-introdutorio">Gira os acessos à caderneta. As palavras-passe nunca são apresentadas nesta lista.</p>
+    <div id="resultado" aria-live="polite"></div>
+    <section class="painel utilizadores__painel">
+      <div class="secao__cabecalho">
+        <div><h2>Adicionar utilizador</h2><p>Crie uma conta para um coordenador ou administrador.</p></div>
+      </div>
+      <form class="formulario" id="form-utilizador" novalidate>
+        <div class="campo"><label for="nome">Nome completo</label><input id="nome" name="nome" maxlength="150" autocomplete="name" required></div>
+        <div class="campo"><label for="email">Email institucional</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
+        <div class="campo"><label for="palavra_passe">Palavra-passe inicial (mín. 12 caracteres)</label><input id="palavra_passe" name="palavra_passe" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></div>
+        <div class="campo"><label for="perfil">Perfil</label><select id="perfil" name="perfil" required><option value="coordenador">Coordenador</option><option value="professor">Professor</option><option value="administrador">Administrador</option><option value="aluno">Aluno</option></select></div>
+        <div class="campo campo--larga" id="campo-aluno" hidden><label for="aluno_id">Registo do aluno</label><select id="aluno_id" name="aluno_id"><option value="">Escolha um aluno sem conta</option></select><span class="erro-campo" id="erro-aluno_id"></span></div>
+        <div class="acoes"><button class="botao" type="submit">Criar utilizador</button></div>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="js/utilizadores.js"></script>
+</body>
+</html>

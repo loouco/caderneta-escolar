@@ -55,6 +55,17 @@ class Validador {
     this.dados[campo] = limpo;
   }
 
+  /** Segredos são preservados literalmente; não remova espaços que fazem parte da palavra-passe. */
+  segredo(campo, { min = 1, max = 128 } = {}) {
+    const valor = this.corpo[campo];
+    if (valor === undefined || valor === null || valor === '') return this.erro(campo, 'Campo obrigatório.');
+    if (typeof valor !== 'string') return this.erro(campo, 'Deve ser texto.');
+    if (!valor.trim()) return this.erro(campo, 'Campo obrigatório.');
+    if (valor.length < min) return this.erro(campo, `Mínimo de ${min} caracteres.`);
+    if (valor.length > max) return this.erro(campo, `Máximo de ${max} caracteres.`);
+    this.dados[campo] = valor;
+  }
+
   /** Texto opcional: ausente, nulo ou vazio ficam a null. */
   textoOpcional(campo, { max = 500 } = {}) {
     const valor = this.corpo[campo];

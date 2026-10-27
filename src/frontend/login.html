@@ -3,30 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#122b3a">
   <title>Caderneta Escolar | Entrar</title>
   <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
-  <main class="login">
-    <header class="login__header">
-      <h1>Caderneta Escolar</h1>
-      <p>Gestão de alunos e ocorrências disciplinares</p>
-    </header>
+  <main class="entrada">
+    <section class="entrada__apresentacao" aria-label="Apresentação do sistema">
+      <a class="marca" href="login.html" aria-label="Caderneta Escolar">
+        <span class="marca__simbolo" aria-hidden="true">CE</span>
+        <span>Caderneta<strong>Escolar</strong></span>
+      </a>
+      <div class="apresentacao__conteudo">
+        <span class="apresentacao__etiqueta"><span></span> Gestão escolar, com cuidado</span>
+        <h1>Um olhar atento<br>faz toda a diferença.</h1>
+        <p>Acompanhe o percurso de cada aluno e mantenha a comunidade escolar mais próxima.</p>
+        <div class="apresentacao__cartao" aria-hidden="true">
+          <div class="cartao__icone">✳</div>
+          <div><strong>Mais organização.</strong><span>Mais tempo para ensinar.</span></div>
+          <span class="cartao__sinal">↗</span>
+        </div>
+      </div>
+      <p class="apresentacao__rodape">Um espaço seguro para cuidar de cada percurso.</p>
+    </section>
 
-    <!-- Provisório (V5): o formulário só navega para a aplicação. A autenticação real será implementada na V6. -->
-    <form class="login__form" action="alunos.html">
-      <label for="email">Email</label>
-      <input type="email" id="email" name="email" placeholder="nome@escola.ao" required>
-
-      <label for="password">Palavra-passe</label>
-      <input type="password" id="password" name="password" placeholder="••••••••" required>
-
-      <button type="submit">Entrar</button>
-    </form>
-
-    <footer class="login__footer">
-      <small>Acesso restrito a utilizadores autorizados</small>
-    </footer>
+    <section class="entrada__acesso">
+      <div class="acesso__conteudo">
+        <div class="acesso__boas-vindas">
+          <span class="acesso__eyebrow">ÁREA RESERVADA</span>
+          <h2>Bem-vindo de volta</h2>
+          <p>Entre na sua conta para continuar. A família acompanha o portal usando o email e a palavra-passe do aluno.</p>
+        </div>
+        <div id="mensagem" class="mensagem" role="alert" aria-live="polite" hidden></div>
+        <form class="login__form" id="form-login" novalidate>
+          <div class="campo-login">
+            <label for="email">Email institucional</label>
+            <input type="email" id="email" name="email" placeholder="nome@escola.ao" autocomplete="username" required>
+          </div>
+          <div class="campo-login">
+            <div class="campo-login__topo"><label for="palavra_passe">Palavra-passe</label></div>
+            <input type="password" id="palavra_passe" name="palavra_passe" placeholder="Introduza a sua palavra-passe" autocomplete="current-password" required>
+          </div>
+          <button type="submit" id="botao-entrar"><span>Entrar na caderneta</span><span aria-hidden="true">→</span></button>
+        </form>
+        <div class="acesso__seguranca"><span aria-hidden="true">⌑</span><span>Acesso protegido. Apenas utilizadores autorizados.</span></div>
+      </div>
+      <footer class="acesso__rodape">Caderneta Escolar <span>·</span> Gestão com confiança</footer>
+    </section>
   </main>
+  <script type="module" src="js/login.js"></script>
 </body>
 </html>

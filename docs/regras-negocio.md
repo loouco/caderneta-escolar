@@ -16,3 +16,6 @@
 | RN12 | A data de fim do ano letivo é posterior à data de início. |
 | RN13 | Uma ocorrência pode ser corrigida (tipo, descrição, data, gravidade, medida, observações), mas nunca muda de aluno nem de responsável, e nunca é eliminada. |
 | RN14 | A data de uma ocorrência e a data de nascimento do aluno não podem ser futuras. |
+| RN15 | Só o administrador gere utilizadores, anos letivos e turmas; o coordenador gere alunos e ocorrências. |
+| RN16 | As sessões expiram após oito horas, são revogadas no logout ou ao desativar uma conta e exigem token CSRF nas escritas. |
+| RN17 | Cada conta de aluno está ligada a, no máximo, um registo de aluno; o aluno autenticado só consulta o próprio estado escolar. |

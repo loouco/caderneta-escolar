@@ -1,3 +1,5 @@
+import { api, definirTokenCSRF } from './api.js';
+
 /** Utilitários de interface. Os dados entram sempre como texto (textContent), nunca como HTML: evita XSS. */
 
 export function el(tag, atributos = {}, ...filhos) {
@@ -14,6 +16,7 @@ export function el(tag, atributos = {}, ...filhos) {
 
 export const GRAVIDADES = { leve: 'Leve', moderada: 'Moderada', grave: 'Grave', muito_grave: 'Muito grave' };
 export const ESTADOS_ALUNO = { ativo: 'Ativo', inativo: 'Inativo', transferido: 'Transferido', concluido: 'Concluído' };
+export const SITUACOES_DISCIPLINARES = { regular: 'Regular', castigado: 'Castigado', suspenso: 'Suspenso' };
 export const ESTADOS_ANO = { planeado: 'Planeado', ativo: 'Ativo', encerrado: 'Encerrado' };
 export const SEXOS = { M: 'Masculino', F: 'Feminino' };
 
@@ -26,21 +29,60 @@ export function formatarData(iso) {
 
 export const etiqueta = (valor, rotulos) => el('span', { class: `etiqueta etiqueta--${valor}` }, rotulos[valor] ?? valor);
 
-export function cabecalho(ativo) {
-  const ligacoes = [
+export async function cabecalho(ativo) {
+  let ligacoes = [
     ['alunos', 'alunos.html', 'Alunos'],
     ['ocorrencias', 'ocorrencias.html', 'Ocorrências'],
     ['turmas', 'turmas.html', 'Turmas e anos letivos'],
   ];
   const alvo = document.getElementById('cabecalho');
-  alvo.className = 'cabecalho';
-  alvo.append(
-    el('div', { class: 'cabecalho__interior' },
-      el('span', { class: 'cabecalho__marca' }, 'Caderneta Escolar'),
-      el('nav', { 'aria-label': 'Principal' },
-        ligacoes.map(([id, href, texto]) => el('a', { href, 'aria-current': id === ativo ? 'page' : false }, texto))),
-      el('a', { class: 'sair', href: 'login.html' }, 'Sair'))
-  );
+  try {
+    const sessao = await api('GET', '/auth/sessao');
+    definirTokenCSRF(sessao.csrf_token);
+    if (sessao.utilizador.perfil === 'aluno') {
+      ligacoes = [['portal-aluno', 'portal-aluno.html', 'Portal da família']];
+    } else if (sessao.utilizador.perfil === 'professor') {
+      ligacoes = [['professor', 'professor.html', 'A minha turma']];
+    } else if (sessao.utilizador.perfil === 'administrador') {
+      ligacoes.push(['utilizadores', 'utilizadores.html', 'Utilizadores']);
+    }
+    alvo.replaceChildren();
+    alvo.className = 'cabecalho';
+    alvo.append(
+      el('div', { class: 'cabecalho__interior' },
+        el('a', { class: 'cabecalho__marca', href: sessao.utilizador.perfil === 'professor' ? 'professor.html' : sessao.utilizador.perfil === 'aluno' ? 'portal-aluno.html' : 'alunos.html' },
+          el('span', { class: 'cabecalho__simbolo', 'aria-hidden': 'true' }, 'CE'),
+          el('span', {}, 'Caderneta', el('strong', {}, 'Escolar'))),
+        el('nav', { 'aria-label': 'Principal' },
+          ligacoes.map(([id, href, texto]) => el('a', { href, 'aria-current': id === ativo ? 'page' : false }, texto))),
+        el('div', { class: 'cabecalho__conta' },
+          el('span', { class: 'cabecalho__utilizador' },
+            el('strong', {}, sessao.utilizador.nome),
+            el('small', {}, {
+              administrador: 'Administrador',
+              coordenador: 'Coordenador',
+              professor: 'Professor',
+              aluno: 'Família · conta do aluno',
+            }[sessao.utilizador.perfil] ?? sessao.utilizador.perfil)),
+          el('button', {
+            class: 'sair',
+            type: 'button',
+            onclick: async () => {
+              try {
+                await api('POST', '/auth/sair');
+                definirTokenCSRF(null);
+                location.replace('/login.html');
+              } catch (erro) {
+                aviso(alvo, erro.message);
+              }
+            },
+          }, 'Terminar sessão')))
+    );
+    return sessao.utilizador;
+  } catch (erro) {
+    aviso(alvo, erro.message);
+    return;
+  }
 }
 
 /** Mostra uma mensagem no topo de um contentor, substituindo a anterior. */

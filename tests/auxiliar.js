@@ -1,18 +1,40 @@
 'use strict';
 
 const { once } = require('node:events');
+const { randomBytes, createHash } = require('node:crypto');
 const { abrirBase } = require('../database/db');
 const { criarApp } = require('../src/backend/app');
 
 /** Arranca a aplicação numa porta livre, com uma base de dados em memória. */
 async function iniciar() {
   const db = abrirBase(':memory:');
+  const utilizadorId = Number(db.prepare(`
+    INSERT INTO utilizador (nome, email, palavra_passe_hash, perfil)
+    VALUES ('Ana Coordenadora', 'ana@escola.ao', 'hash-de-teste', 'administrador')`).run().lastInsertRowid);
   const servidor = criarApp(db).listen(0, '127.0.0.1');
   await once(servidor, 'listening');
   const base = `http://127.0.0.1:${servidor.address().port}`;
 
-  async function pedir(metodo, caminho, corpo) {
+  function criarSessao(id = utilizadorId) {
+    const token = randomBytes(32).toString('base64url');
+    const csrfToken = randomBytes(32).toString('base64url');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    db.prepare(`
+      INSERT INTO sessao (token_hash, csrf_token, utilizador_id, expira_em)
+      VALUES (?, ?, ?, datetime('now', '+8 hours'))`).run(tokenHash, csrfToken, id);
+    return { cookie: `caderneta.sid=${token}`, csrfToken };
+  }
+
+  const sessao = criarSessao();
+
+  async function pedirComo(metodo, caminho, corpo, credenciais) {
     const opcoes = { method: metodo, headers: {} };
+    if (credenciais) {
+      opcoes.headers.Cookie = credenciais.cookie;
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(metodo.toUpperCase())) {
+        opcoes.headers['X-CSRF-Token'] = credenciais.csrfToken;
+      }
+    }
     if (corpo !== undefined) {
       opcoes.headers['Content-Type'] = 'application/json';
       opcoes.body = typeof corpo === 'string' ? corpo : JSON.stringify(corpo);
@@ -24,6 +46,9 @@ async function iniciar() {
     return { status: resposta.status, corpo: json, cabecalhos: resposta.headers };
   }
 
+  const pedir = (metodo, caminho, corpo) => pedirComo(metodo, caminho, corpo, sessao);
+  const pedirAnonimo = (metodo, caminho, corpo) => pedirComo(metodo, caminho, corpo, null);
+
   async function fechar() {
     servidor.close();
     servidor.closeAllConnections();
@@ -31,7 +56,7 @@ async function iniciar() {
     db.close();
   }
 
-  return { db, pedir, fechar, base };
+  return { db, pedir, pedirAnonimo, pedirComo, criarSessao, sessao, utilizadorId, fechar, base };
 }
 
 const dadosAno = (o = {}) => ({ designacao: '2025/2026', data_inicio: '2025-09-01', data_fim: '2026-07-15', estado: 'ativo', ...o });
@@ -64,7 +89,7 @@ const dadosOcorrencia = (utilizadorId, o = {}) => ({
   ...o,
 });
 
-/** Insere um utilizador diretamente na base (ainda não há API de utilizadores). */
+/** Insere um utilizador diretamente na base para preparar cenários de teste. */
 function criarUtilizador(db, { nome = 'Ana Coordenadora', email = 'ana@escola.ao', estado = 'ativo' } = {}) {
   const r = db.prepare(
     "INSERT INTO utilizador (nome, email, palavra_passe_hash, perfil, estado) VALUES (?, ?, 'hash-de-teste', 'coordenador', ?)"

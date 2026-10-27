@@ -11,6 +11,8 @@ erDiagram
     TURMA ||--o{ ALUNO : "tem"
     ALUNO ||--o{ OCORRENCIA : "tem"
     UTILIZADOR ||--o{ OCORRENCIA : "regista"
+    UTILIZADOR ||--o{ SESSAO : "autentica"
+    ALUNO o|--o| UTILIZADOR : "conta de acesso"
 
     ANO_LETIVO { int id PK
         text designacao UK
@@ -36,7 +38,12 @@ erDiagram
         text email UK
         text palavra_passe_hash
         text perfil
+        int aluno_id FK, UK
         text estado }
+    SESSAO { text token_hash PK
+        text csrf_token
+        int utilizador_id FK
+        text expira_em }
     OCORRENCIA { int id PK
         int aluno_id FK
         int utilizador_id FK
@@ -61,11 +68,13 @@ erDiagram
 | RN07 preservar histórico | todas as FK com `ON DELETE RESTRICT` |
 | RN11 email único | `UNIQUE COLLATE NOCASE` (ignora maiúsculas) |
 | RN12 fim depois do início | `CHECK (data_fim > data_inicio)` |
+| RN17 conta de aluno ligada a um único aluno | `utilizador.aluno_id` único, FK restrita e coerente com o perfil |
 
 ## Notas de implementação
 
 - **Chaves estrangeiras:** o SQLite tem-nas desligadas por omissão. `abrirBase()` executa `PRAGMA foreign_keys = ON` em cada ligação.
 - **Datas:** guardadas como texto ISO (`AAAA-MM-DD`). O `CHECK (date(x) IS x)` rejeita formatos inválidos e datas impossíveis como `2025-02-30`.
+- **Sessões:** o identificador aleatório só é guardado como SHA-256; a sessão liga a um utilizador ativo e expira após oito horas.
 - **Eliminação de alunos:** a base impede eliminar alunos com ocorrências. A API (V3) não terá `DELETE` para alunos, apenas alteração de `estado`.
 - **Validação em duas camadas:** a base é a última defesa. O backend (V3 em diante) valida antes e devolve mensagens claras.
 

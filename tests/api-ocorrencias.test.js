@@ -11,7 +11,7 @@ let alunoId;
 beforeEach(async () => {
   app = await iniciar();
   ({ turmaId } = await criarTurmaBase(app.pedir));
-  utilizadorId = criarUtilizador(app.db);
+  utilizadorId = app.utilizadorId;
   alunoId = (await app.pedir('POST', '/api/alunos', dadosAluno(turmaId))).corpo.id;
 });
 afterEach(async () => { await app.fechar(); });
@@ -56,13 +56,11 @@ describe('API de ocorrências: registo e validação', () => {
     assert.equal(r.corpo.observacoes, null);
   });
 
-  it('RN02: exige um utilizador ativo e existente como responsável', async () => {
-    assert.equal((await registar({ utilizador_id: 999 })).status, 400);
-    assert.equal((await registar({ utilizador_id: undefined })).status, 400);
-    const inativo = criarUtilizador(app.db, { email: 'inativo@escola.ao', estado: 'inativo' });
-    const r = await registar({ utilizador_id: inativo });
-    assert.equal(r.status, 400);
-    assert.ok(r.corpo.erro.detalhes.utilizador_id);
+  it('RN02: o responsável é a sessão e não pode ser forjado pelo pedido', async () => {
+    const forjado = criarUtilizador(app.db, { email: 'forjado@escola.ao' });
+    const r = await registar({ utilizador_id: forjado });
+    assert.equal(r.status, 201);
+    assert.equal(r.corpo.utilizador_id, app.utilizadorId);
   });
 
   it('devolve 404 para aluno inexistente e 400 para id inválido', async () => {
@@ -178,12 +176,12 @@ describe('API de ocorrências: correção e preservação do histórico', () => 
   });
 });
 
-describe('API de utilizadores (provisória)', () => {
-  it('lista só utilizadores ativos, sem email nem hash', async () => {
-    criarUtilizador(app.db, { nome: 'Inativo', email: 'i@escola.ao', estado: 'inativo' });
-    const r = await app.pedir('GET', '/api/utilizadores');
-    assert.equal(r.status, 200);
-    assert.equal(r.corpo.length, 1);
-    assert.deepEqual(Object.keys(r.corpo[0]).sort(), ['id', 'nome', 'perfil']);
+describe('API de utilizadores', () => {
+  it('reserva a gestão de utilizadores aos administradores', async () => {
+    const coordenadorId = Number(app.db.prepare(`
+      INSERT INTO utilizador (nome, email, palavra_passe_hash, perfil)
+      VALUES ('Coordenador', 'coord@escola.ao', 'hash', 'coordenador')`).run().lastInsertRowid);
+    const r = await app.pedirComo('GET', '/api/utilizadores', undefined, app.criarSessao(coordenadorId));
+    assert.equal(r.status, 403);
   });
 });

@@ -3,6 +3,8 @@
 const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { abrirBase } = require('../database/db');
+const Database = require('better-sqlite3');
+const { migrarPerfis } = require('../database/db');
 
 let db;
 
@@ -68,11 +70,22 @@ const CONSTRAINT = /constraint failed/i;
 // ---------- Estrutura ----------
 
 describe('Estrutura da base de dados', () => {
-  it('cria as cinco tabelas', () => {
+  it('cria as seis tabelas', () => {
     const tabelas = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
       .all().map((t) => t.name);
-    assert.deepEqual(tabelas, ['aluno', 'ano_letivo', 'ocorrencia', 'turma', 'utilizador']);
+    assert.deepEqual(tabelas, ['aluno', 'ano_letivo', 'ocorrencia', 'reuniao', 'sessao', 'transferencia_turma', 'turma', 'turma_professor', 'utilizador']);
+  });
+
+  it('migra a situação disciplinar sem perder ocorrências antigas', () => {
+    const { migrarSituacaoOcorrencia } = require('../database/db');
+    const antiga = new Database(':memory:');
+    antiga.exec(`CREATE TABLE ocorrencia (id INTEGER PRIMARY KEY, tipo TEXT); INSERT INTO ocorrencia (id,tipo) VALUES (1,'Atraso');`);
+    migrarSituacaoOcorrencia(antiga);
+    assert.equal(antiga.prepare('SELECT tipo,situacao_disciplinar FROM ocorrencia WHERE id=1').get().situacao_disciplinar, 'regular');
+    assert.equal(antiga.prepare('SELECT tipo FROM ocorrencia WHERE id=1').get().tipo, 'Atraso');
+    assert.doesNotThrow(() => migrarSituacaoOcorrencia(antiga));
+    antiga.close();
   });
 
   it('tem as chaves estrangeiras activas', () => {
@@ -83,6 +96,44 @@ describe('Estrutura da base de dados', () => {
     const fs = require('node:fs');
     const { CAMINHO_ESQUEMA } = require('../database/db');
     assert.doesNotThrow(() => db.exec(fs.readFileSync(CAMINHO_ESQUEMA, 'utf8')));
+  });
+
+  it('migra utilizadores legados e preserva referências a sessões e ocorrências', () => {
+    const antiga = new Database(':memory:');
+    antiga.pragma('foreign_keys = ON');
+    antiga.exec(`
+      CREATE TABLE aluno (id INTEGER PRIMARY KEY);
+      CREATE TABLE utilizador (
+        id INTEGER PRIMARY KEY, nome TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
+        palavra_passe_hash TEXT NOT NULL,
+        perfil TEXT NOT NULL CHECK (perfil IN ('coordenador', 'administrador')),
+        estado TEXT NOT NULL DEFAULT 'ativo'
+      );
+      CREATE TABLE sessao (
+        token_hash TEXT PRIMARY KEY, csrf_token TEXT NOT NULL,
+        utilizador_id INTEGER NOT NULL REFERENCES utilizador(id), expira_em TEXT NOT NULL
+      );
+      CREATE TABLE ocorrencia (
+        id INTEGER PRIMARY KEY, utilizador_id INTEGER NOT NULL REFERENCES utilizador(id)
+      );
+      INSERT INTO utilizador VALUES (1, 'Administrador', 'admin@escola.ao', 'hash', 'administrador', 'ativo');
+      INSERT INTO aluno VALUES (1);
+      INSERT INTO sessao VALUES ('token', 'csrf', 1, '2099-01-01');
+      INSERT INTO ocorrencia VALUES (1, 1);
+    `);
+    try {
+      migrarPerfis(antiga);
+      assert.equal(antiga.pragma('foreign_keys', { simple: true }), 1);
+      assert.equal(antiga.prepare('SELECT perfil, aluno_id FROM utilizador WHERE id = 1').get().perfil, 'administrador');
+      assert.equal(antiga.prepare('SELECT utilizador_id FROM sessao WHERE token_hash = ?').get('token').utilizador_id, 1);
+      assert.equal(antiga.prepare('SELECT utilizador_id FROM ocorrencia WHERE id = 1').get().utilizador_id, 1);
+      assert.deepEqual(antiga.pragma('foreign_key_check'), []);
+      assert.doesNotThrow(() => antiga.prepare(
+        "INSERT INTO utilizador (nome, email, palavra_passe_hash, perfil, aluno_id) VALUES ('Aluno', 'aluno@escola.ao', 'hash', 'aluno', 1)"
+      ).run());
+    } finally {
+      antiga.close();
+    }
   });
 });
 
@@ -208,7 +259,13 @@ describe('Utilizador', () => {
   });
 
   it('rejeita perfil inválido', () => {
-    assert.throws(() => criarUtilizador({ perfil: 'professor' }), CONSTRAINT);
+    assert.throws(() => criarUtilizador({ perfil: 'aluno-sem-vínculo' }), CONSTRAINT);
+  });
+
+  it('aceita o perfil professor e exige que a conta de aluno tenha vínculo', () => {
+    const professorId = criarUtilizador({ email: 'professor@escola.ao', perfil: 'professor' });
+    assert.ok(professorId);
+    assert.throws(() => criarUtilizador({ email: 'aluno@escola.ao', perfil: 'aluno' }), CONSTRAINT);
   });
 
   it('RN11: rejeita email duplicado, ignorando maiúsculas', () => {

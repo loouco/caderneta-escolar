@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caderneta Escolar | Entrar</title>
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <main class="login">
+    <header class="login__header">
+      <h1>Caderneta Escolar</h1>
+      <p>Gestão de alunos e ocorrências disciplinares</p>
+    </header>
+
+    <!-- V1: apenas visual. A autenticação real será implementada na V6. -->
+    <form class="login__form" onsubmit="return false;">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="nome@escola.ao" required>
+
+      <label for="password">Palavra-passe</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" required>
+
+      <button type="submit">Entrar</button>
+    </form>
+
+    <footer class="login__footer">
+      <small>Acesso restrito a utilizadores autorizados</small>
+    </footer>
+  </main>
+</body>
+</html>

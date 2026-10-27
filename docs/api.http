@@ -1,0 +1,68 @@
+### Ficheiro para a extensão "REST Client" do VS Code.
+### Corra por ordem: clique em "Send Request" acima de cada pedido.
+
+@base = http://localhost:3000/api
+
+### Saúde
+GET {{base}}/saude
+
+### 1. Criar ano letivo
+POST {{base}}/anos-letivos
+Content-Type: application/json
+
+{
+  "designacao": "2025/2026",
+  "data_inicio": "2025-09-01",
+  "data_fim": "2026-07-15",
+  "estado": "ativo"
+}
+
+### 2. Criar turma (use o id do ano letivo criado)
+POST {{base}}/turmas
+Content-Type: application/json
+
+{ "nome": "9.ª A", "classe": "9.ª classe", "ano_letivo_id": 1 }
+
+### 3. Criar aluno (use o id da turma criada)
+POST {{base}}/alunos
+Content-Type: application/json
+
+{
+  "numero_matricula": "2025001",
+  "nome_completo": "Maria da Silva",
+  "data_nascimento": "2010-03-15",
+  "sexo": "F",
+  "encarregado_educacao": "João da Silva",
+  "contacto": "923000000",
+  "turma_id": 1
+}
+
+### Listar e pesquisar alunos
+GET {{base}}/alunos
+###
+GET {{base}}/alunos?q=maria
+###
+GET {{base}}/alunos?turma_id=1&estado=ativo
+
+### Detalhe do aluno
+GET {{base}}/alunos/1
+
+### Alterar o estado do aluno
+PATCH {{base}}/alunos/1/estado
+Content-Type: application/json
+
+{ "estado": "inativo" }
+
+### Listar turmas e anos letivos
+GET {{base}}/turmas
+###
+GET {{base}}/anos-letivos
+
+### Erro esperado: aluno não pode ser eliminado (405)
+DELETE {{base}}/alunos/1
+
+### Erro esperado: dados inválidos (400)
+POST {{base}}/alunos
+Content-Type: application/json
+
+{ "nome_completo": "", "sexo": "X" }

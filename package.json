@@ -1,17 +1,20 @@
 {
   "name": "caderneta-escolar",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Sistema web de gestão de caderneta escolar: alunos e ocorrências disciplinares.",
   "private": true,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
+    "start": "node src/backend/server.js",
+    "dev": "node --watch src/backend/server.js",
     "db:init": "node database/init.js",
     "test": "node --test"
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.3.0"
   }
 }

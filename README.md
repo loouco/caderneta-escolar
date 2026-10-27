@@ -15,7 +15,7 @@ Projecto académico da disciplina de Engenharia de Software.
 |---|---|---|
 | V1 | Planeamento e estrutura | Concluída |
 | V2 | Base de dados | Concluída |
-| V3 | Backend (CRUD alunos e turmas) | Pendente |
+| V3 | Backend (CRUD alunos e turmas) | Concluída |
 | V4 | Ocorrências | Pendente |
 | V5 | Frontend | Pendente |
 | V6 | Autenticação | Pendente |
@@ -26,6 +26,7 @@ Projecto académico da disciplina de Engenharia de Software.
 - [Entidades](docs/entidades.md)
 - [Regras de negócio](docs/regras-negocio.md)
 - [Base de dados](docs/base-dados.md)
+- [API REST](docs/api.md)
 
 ## Requisitos de ambiente
 - Node.js 20 ou superior
@@ -33,7 +34,11 @@ Projecto académico da disciplina de Engenharia de Software.
 ## Como executar
 ```bash
 npm install        # instala as dependências
-npm run db:init    # cria a base de dados SQLite
+npm start          # arranca o servidor em http://localhost:3000
 npm test           # corre os testes
 ```
-O servidor web será documentado a partir da V3.
+Com o servidor a correr, abra http://localhost:3000 para ver o ecrã de login.
+A API está documentada em [docs/api.md](docs/api.md).
+A base de dados `database/caderneta.db` é criada automaticamente no primeiro arranque.
+
+> A API ainda não tem autenticação (V6). Por segurança, o servidor só aceita ligações locais.

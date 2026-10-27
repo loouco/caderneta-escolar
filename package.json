@@ -1,0 +1,11 @@
+{
+  "name": "caderneta-escolar",
+  "version": "0.1.0",
+  "description": "Sistema web de gestão de caderneta escolar: alunos e ocorrências disciplinares.",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "UNLICENSED"
+}
